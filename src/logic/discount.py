@@ -1,49 +1,59 @@
 import psycopg2
 
-def calculate_price(item_name, base_price):
+def calculate_price(product_name, base_price):
+    if not isinstance(product_name, str):
+        print("Ошибка: название товара должно быть строкой")
+        return None
+    if not isinstance(base_price, (int, float)):
+        print("Ошибка: цена должна быть числом")
+        return None
+    if base_price <= 0:
+        print("Ошибка: цена должна быть > 0")
+        return None
+    conn = None
+    cursor = None
+    
     try:
         conn = psycopg2.connect(
             host="localhost", port=5432, database="practice_db",
             user="postgres", password="123"
         )
         cursor = conn.cursor()
-
-        # 1. Дополнительный запрос: получаем название товара из БД
-        # (Так как мы передаем название, запрос ищет по name)
-        cursor.execute("SELECT name FROM products WHERE name = %s", (item_name,))
-        name_row = cursor.fetchone()
-        product_name = name_row[0] if name_row else item_name
-
-        # 2. Основной запрос: считаем заказы за месяц
+        
+        # 2. SQL-запрос (используем product_name, так как в базе нет product_id)
         cursor.execute("""
             SELECT COUNT(*) 
             FROM order_items oi 
             JOIN orders o ON oi.order_id = o.id 
             WHERE oi.product_name = %s 
               AND o.order_date >= CURRENT_DATE - INTERVAL '1 month'
-        """, (item_name,))
-
+        """, (product_name,))
+        
         result = cursor.fetchone()
+
+        if result is None:
+            print("Ошибка: нет результата")
+            return None
+            
         orders_count = result[0]
-
-        cursor.close()
-        conn.close()
-
+        orders_count = result[0]
+        
         if orders_count == 0:
-            final_price = float(base_price) * 0.75
-            discount_size = 25.0
+            return base_price * 0.75
         else:
-            final_price = float(base_price)
-            discount_size = 0.0
-
-        print(f"Товар: {product_name} | Итог: {final_price} | Скидка: {discount_size}%")
-        return (final_price, discount_size)
-
-    except Exception as e:
+            return base_price
+            
+    except psycopg2.Error as e:
         print(f"Ошибка БД: {e}")
         return None
+        
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
-# Тестовый запуск
+
 if __name__ == "__main__":
     result = calculate_price('Кольцо Линия', 2990)
-    print(f"Результат (кортеж): {result}")
+    print(f"Итоговая цена: {result}")
