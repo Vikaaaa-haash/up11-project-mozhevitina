@@ -17,6 +17,11 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+def calculate_discount(old_price, new_price):
+    if old_price == 0:
+        return 0
+    return (old_price - new_price) / old_price * 100
+
 def create_card(product):
     p_id = product[0]
     category = product[1]
@@ -48,6 +53,7 @@ def create_card(product):
         pixmap = QPixmap("resources/picture.png")
 
     # Скидка
+        # 1. Рассчитываем цену со скидкой
     try:
         final_price = calculate_price(name, float(price))
         if final_price is None:
@@ -55,6 +61,17 @@ def create_card(product):
     except Exception as e:
         logging.error(f"Ошибка при расчете скидки: {e}")
         final_price = float(price)
+
+    # 2. Рассчитываем процент скидки
+    discount_percent = calculate_discount(float(price), final_price)
+
+    # 3. Подсветка: если остаток меньше 3, красим фон в красный
+    try:
+        is_low_stock = int(stock) < 3
+    except (ValueError, TypeError):
+        is_low_stock = True
+        
+    bg_color = "#FF8080" if is_low_stock else "#FFFFFF"
 
 
         
@@ -108,13 +125,24 @@ def create_card(product):
     
     main_layout.addLayout(text_layout)
     
+        # 4. Формируем текст цены и применяем цвет
     if final_price < float(price):
-        price_text = f"<s>{int(price)} ₽</s><br><b style='color:#70B2AF;'>{int(final_price)} ₽</b>"
+        price_text = f"<s>{int(price)} ₽</s><br><b>{int(final_price)} ₽</b> <span style='font-size:12px;'>(-{int(discount_percent)}%)</span>"
     else:
-        price_text = f"<b style='color:#70B2AF;'>{int(price)} ₽</b>"
+        price_text = f"<b>{int(price)} ₽</b>"
 
     price_label = QLabel(price_text)
-    price_label.setStyleSheet("font-size: 18px; border: none;")
+
+    if discount_percent > 30:
+        # Супер-скидка (красный)
+        price_label.setStyleSheet("font-size: 18px; border: none; color: #FF0000; font-weight: bold;")
+    # Если скидка больше 15%, красим текст цены в зеленый (#2E8B57)
+    if discount_percent > 15:
+        price_label.setStyleSheet("font-size: 18px; border: none; color: #2E8B57; font-weight: bold;")
+    else:
+        # Если скидки нет или она маленькая, оставляем бирюзовый
+        price_label.setStyleSheet("font-size: 18px; border: none; color: #70B2AF; font-weight: bold;")
+
     price_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
     main_layout.addWidget(price_label)
     
