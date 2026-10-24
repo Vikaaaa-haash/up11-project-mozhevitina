@@ -27,13 +27,20 @@ class Database:
             self.connection_pool.closeall()
 
     def get_products(self):
+        """Возвращает список всех товаров с остатками (для ювелирки)"""
         conn = self.get_connection()
         if not conn:
             return []
         
         try:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM products")
+            cursor.execute("""
+                SELECT 
+                    id, category, name, production, 
+                    composition, price, image, 0 as total_quantity
+                FROM products
+                ORDER BY id
+            """)
             products = cursor.fetchall()
             cursor.close()
             return products
