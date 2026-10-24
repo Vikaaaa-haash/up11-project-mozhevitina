@@ -1,5 +1,6 @@
 import sys
 import os
+import logging
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'logic'))
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, 
@@ -7,7 +8,13 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
-from database import Database
+from database import Database 
+
+logging.basicConfig(
+    filename='app.log',
+    level=logging.WARNING,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -70,6 +77,7 @@ class MainWindow(QMainWindow):
 
 from discount import calculate_price  
 
+
 def create_card(product):
     p_id = product[0]
     category = product[1]
@@ -79,19 +87,34 @@ def create_card(product):
     price = product[5]
     image_name = product[6]
 
+    # ДЗ
+    if image_name is not None and str(image_name).strip() != "":
+        image_path = f"resources/{image_name}"
+    else:
+        image_path = None
 
-    final_price = calculate_price(name, float(price))
-    if final_price is None:
-        final_price = float(price) 
+    if image_path and os.path.exists(image_path):
+        pixmap = QPixmap(image_path)
+    else:
+        # Логирование отсутствующих файлов
+        if image_name:
+            logging.warning(f"Файл не найден: {image_name}. Использована заглушка.")
+        else:
+            logging.warning(f"У товара '{name}' (ID: {p_id}) не указано изображение. Использована заглушка.")
+        pixmap = QPixmap("resources/picture.png")
 
-    # 2. Подсветка для товаров с количеством ≤ 3
-    # Так как в таблице products нет поля "количество", 
-    # мы для демонстрации подсветим товары с нечетным ID 
-    # Допустим, мы подсветим товары, у которых цена < 2000 (как "залежавшиеся")
-    
-    bg_color = "#FF8080" if price <= 2000 else "#FFFFFF" 
+    try:
+        final_price = calculate_price(name, float(price))
+        if final_price is None:
+            final_price = float(price)
+    except Exception as e:
+        logging.error(f"Ошибка при расчете скидки: {e}")
+        final_price = float(price)
 
-    # Создаём карточку
+    # --- 3. Подсветка (красным, если цена < 2000) ---
+    bg_color = "#FF8080" if float(price) < 2000 else "#FFFFFF"
+
+    # --- 4. Создание карточки ---
     card = QWidget()
     card.setStyleSheet(f"""
         QWidget {{
@@ -104,21 +127,19 @@ def create_card(product):
     
     main_layout = QHBoxLayout()
     
-    # --- Изображение ---
+    # Изображение
     image_label = QLabel()
     image_label.setFixedSize(100, 100)
-    image_path = f"resources/{image_name}" if image_name else "resources/picture.png"
-    if not os.path.exists(image_path):
-        image_path = "resources/picture.png"
-    pixmap = QPixmap(image_path)
+    image_label.setAlignment(Qt.AlignCenter)
     if not pixmap.isNull():
         image_label.setPixmap(pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation))
     else:
         image_label.setText("[НЕТ ФОТО]")
     main_layout.addWidget(image_label)
     
-    # --- Текст ---
+    # Текст
     text_layout = QVBoxLayout()
+    
     title = QLabel(f"{production} | {name}")
     title.setStyleSheet("font-size: 16px; font-weight: bold; color: #000000; border: none;")
     text_layout.addWidget(title)
@@ -133,7 +154,7 @@ def create_card(product):
     
     main_layout.addLayout(text_layout)
     
-    # --- Цена ---
+    # Цена (со скидкой)
     if final_price < float(price):
         price_text = f"<s>{int(price)} ₽</s><br><b style='color:#70B2AF;'>{int(final_price)} ₽</b>"
     else:
