@@ -48,9 +48,9 @@ class LoginWindow(QWidget):
 
         try:
             cursor = conn.cursor()
-            # Запрашиваем ФИО вместе с ролью
+            # Запрашиваем колонку role из БД
             cursor.execute("""
-                SELECT login, role, last_name, first_name, middle_name 
+                SELECT id, role, last_name, first_name, middle_name 
                 FROM users WHERE login = %s
             """, (login,))
             result = cursor.fetchone()
@@ -63,26 +63,25 @@ class LoginWindow(QWidget):
         if result is None:
             QMessageBox.warning(self, "Ошибка", "Неверный логин")
         else:
-            self.user_login = result[0]
-            self.user_role = result[1]
+            self.user_id = result[0]
+            # Сохраняем роль из базы в переменную role_id
+            self.role_id = result[1] 
             
             # Формируем ФИО
             last_name = result[2] if result[2] else ""
             first_name = result[3] if result[3] else ""
             middle_name = result[4] if result[4] else ""
             
-            self.user_fio = f"{last_name} {first_name} {middle_name}".strip()
+            self.full_name = f"{last_name} {first_name} {middle_name}".strip()
             
-            # Если ФИО пустое, показываем логин
-            if not self.user_fio:
-                self.user_fio = self.user_login.capitalize()
-            
-            QMessageBox.information(self, "Успех", f"Добро пожаловать, {self.user_role}!")
+            QMessageBox.information(self, "Успех", f"Добро пожаловать, {self.full_name}!")
             
             from main import MainWindow
-            self.main_window = MainWindow(user_role=self.user_role, user_fio=self.user_fio)
+            # Теперь передаем role_id (в котором лежит "Клиент", "Менеджер" или "Администратор")
+            self.main_window = MainWindow(role_id=self.role_id, full_name=self.full_name)
             self.main_window.show()
             self.close()
+
 
     def login_as_guest(self):
         # Гость не вводит логин, роль = None, ФИО = None

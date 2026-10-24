@@ -20,11 +20,20 @@ logging.basicConfig(
 def create_card(product):
     p_id = product[0]
     category = product[1]
-    name = product[2]
-    production = product[3]
-    composition = product[4]
-    price = product[5]
-    image_name = product[6]
+    subcategory = product[2] 
+    image_name = product[3]  
+    name = product[4]        
+    production = product[5] 
+    description = product[6] 
+    composition = product[7] 
+    price = product[8]       
+    stock = product[9] if len(product) > 9 and product[9] is not None else 0 
+    
+
+    try:
+        stock = int(product[9]) if len(product) > 9 and product[9] is not None else 0
+    except (ValueError, TypeError):
+        stock = 0
 
     if image_name and str(image_name).strip() != "":
         image_path = f"resources/{image_name}"
@@ -47,8 +56,14 @@ def create_card(product):
         logging.error(f"Ошибка при расчете скидки: {e}")
         final_price = float(price)
 
-    # Подсветка
-    bg_color = "#FF8080" if float(price) < 2000 else "#FFFFFF"
+
+        
+    try:
+        is_low_stock = int(stock) < 3
+    except (ValueError, TypeError):
+        is_low_stock = True 
+        
+    bg_color = "#FF8080" if is_low_stock else "#FFFFFF"
 
     card = QWidget()
     card.setStyleSheet(f"""
@@ -85,6 +100,12 @@ def create_card(product):
     comp_label.setStyleSheet("color: #555555; border: none;")
     text_layout.addWidget(comp_label)
     
+    # ВЫВОДИМ ОСТАТОК НА ЭКРАН
+    stock_label = QLabel(f"В наличии: {stock} шт.")
+    text_color = "#8B0000" if stock < 3 else "#555555"
+    stock_label.setStyleSheet(f"color: {text_color}; font-weight: bold; border: none;")
+    text_layout.addWidget(stock_label)
+    
     main_layout.addLayout(text_layout)
     
     if final_price < float(price):
@@ -100,20 +121,19 @@ def create_card(product):
     card.setLayout(main_layout)
     return card
 
-
 class MainWindow(QMainWindow):
-    # ДОБАВИЛИ user_fio в параметры конструктора
-    def __init__(self, user_role=None, user_fio=None):
+    # ДОБАВИЛИ full_name
+    def __init__(self, role_id=None, full_name=None):
         super().__init__()
-        self.user_role = user_role
-        self.user_fio = user_fio 
+        self.role_id = role_id
+        self.full_name = full_name 
         self.db = Database()
         
         self.setWindowTitle("Ювелирный — Каталог")
         self.resize(900, 700)
         self.setWindowIcon(QIcon("resources/icon.ico"))
         
-        print(f"DEBUG: В главное окно передана роль: {self.user_role}, ФИО: {self.user_fio}")
+        print(f"DEBUG: В главное окно передана роль: {self.role_id}, ФИО: {self.full_name}")
         
         self.setup_ui()
         self.setup_role_interface()
@@ -133,16 +153,23 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(logo)
         
         title = QLabel("Ювелирный магазин")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #70B2AF;")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #70B2AF; margin-left: 10px;")
         top_layout.addWidget(title)
+        
         top_layout.addStretch()
 
-        # ДОБАВЛЯЕМ ОТОБРАЖЕНИЕ ФИО ПОЛЬЗОВАТЕЛЯ
-        if self.user_fio:
-            self.fio_label = QLabel(self.user_fio)
-            self.fio_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333333; margin-right: 15px;")
+        # --- ДОМАШНЕЕ ЗАДАНИЕ: ИКОНКА, ФИО И РОЛЬ ---
+        if self.full_name:
+            self.icon_label = QLabel()
+            icon = self.style().standardIcon(self.style().StandardPixmap.SP_MessageBoxInformation)
+            self.icon_label.setPixmap(icon.pixmap(24, 24))
+            top_layout.addWidget(self.icon_label)
+
+            self.fio_label = QLabel(f"{self.full_name} ({self.role_id})")
+            self.fio_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333333; margin-right: 15px; margin-left: 5px;")
             top_layout.addWidget(self.fio_label)
 
+        # --- СОЗДАНИЕ КНОПОК РОЛЕЙ ---
         self.order_button = QPushButton("Оформить заказ")
         self.manager_button = QPushButton("Заказы (менеджер)")
         self.admin_button = QPushButton("Админ-панель")
@@ -151,7 +178,7 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(self.manager_button)
         top_layout.addWidget(self.admin_button)
 
-        # ДОБАВЛЯЕМ КНОПКУ ВЫХОД
+        # --- КНОПКА ВЫХОД ---
         self.logout_button = QPushButton("Выход")
         self.logout_button.setStyleSheet("background-color: #FF8080; color: white; font-weight: bold; padding: 5px 15px;")
         self.logout_button.clicked.connect(self.logout)
@@ -159,6 +186,7 @@ class MainWindow(QMainWindow):
         
         main_layout.addLayout(top_layout)
 
+        # --- КАТАЛОГ ---
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         catalog_container = QWidget()
@@ -188,12 +216,12 @@ class MainWindow(QMainWindow):
         self.admin_button.hide()
         
         # Показываем кнопки по роли
-        if self.user_role == "Клиент":
+        if self.role_id == "Клиент":
             self.order_button.show()
-        elif self.user_role == "Менеджер":
+        elif self.role_id == "Менеджер":
             self.order_button.show()
             self.manager_button.show()
-        elif self.user_role == "Администратор":
+        elif self.role_id == "Администратор":
             self.order_button.show()
             self.manager_button.show()
             self.admin_button.show()

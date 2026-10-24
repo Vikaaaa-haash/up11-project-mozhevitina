@@ -1,11 +1,27 @@
-import pandas as pd
-import psycopg2
-from database import Database # Используем ваш класс Database для подключения
+import openpyxl
+import os
+from database import Database
 
-def import_data_from_excel(file_path):
-    print("Чтение Excel-файла...")
-    # Читаем Excel (предполагаем, что файл называется Users_import.xlsx)
-    df = pd.read_excel(file_path)
+def import_users():
+    possible_paths = [
+        "Users_import.xlsx",
+        os.path.join(os.path.expanduser("~"), "Desktop", "Users_import.xlsx")
+    ]
+    
+    file_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            file_path = path
+            break
+            
+    if not file_path:
+        print("ОШИБКА: Файл Users_import.xlsx не найден!")
+        return
+
+    print(f"Найден файл: {file_path}")
+    
+    wb = openpyxl.load_workbook(file_path)
+    sheet = wb.active
     
     db = Database()
     conn = db.get_connection()
@@ -14,39 +30,49 @@ def import_data_from_excel(file_path):
         return
         
     cursor = conn.cursor()
+    added_count = 0
+    updated_count = 0
     
-    success_count = 0
-    error_count = 0
-    
-    print("Обновление данных в БД...")
-    for index, row in df.iterrows():
-        # Берем данные из колонок Excel
-        last_name = str(row['Фамилия']).strip() if pd.notna(row['Фамилия']) else ''
-        first_name = str(row['Имя']).strip() if pd.notna(row['Имя']) else ''
-        middle_name = str(row['Отчество']).strip() if pd.notna(row['Отчество']) else ''
+    print("Проверка и добавление пользователей в БД...")
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        if not row or not row[3]: 
+            continue
+            
+        last_name = str(row[0]).strip() if row[0] else ''
+        first_name = str(row[1]).strip() if row[1] else ''
+        middle_name = str(row[2]).strip() if row[2] else ''
+        login = str(row[3]).strip()
+        role = str(row[4]).strip()
+
+        if role == "Авторизованный пользователь":
+            role = "Клиент"
         
-        login = str(row['Логин']).strip()
-        role = str(row['Роль']).strip()
+        cursor.execute("SELECT id FROM users WHERE login = %s", (login,))
+        exists = cursor.fetchone()
         
-        # Обновляем существующего пользователя
         try:
-            cursor.execute("""
-                UPDATE users 
-                SET last_name = %s, first_name = %s, middle_name = %s 
-                WHERE login = %s
-            """, (last_name, first_name, middle_name, login))
-            success_count += 1
+            if exists:
+                cursor.execute("""
+                    UPDATE users 
+                    SET last_name = %s, first_name = %s, middle_name = %s, role = %s
+                    WHERE login = %s
+                """, (last_name, first_name, middle_name, role, login))
+                updated_count += 1
+            else:
+                cursor.execute("""
+                    INSERT INTO users (login, role, last_name, first_name, middle_name)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (login, role, last_name, first_name, middle_name))
+                added_count += 1
+            conn.commit() 
         except Exception as e:
-            print(f"Ошибка при обновлении {login}: {e}")
-            conn.rollback()
-            error_count += 1
+            print(f"Ошибка с пользователем {login}: {e}")
+            conn.rollback() 
             
     conn.commit()
     cursor.close()
     db.release_connection(conn)
-    print(f"Готово! Обновлено пользователей: {success_count}. Ошибок: {error_count}.")
+    print(f"ГОТОВО! Добавлено новых: {added_count}. Обновлено старых: {updated_count}.")
 
 if __name__ == "__main__":
-    # Укажите точное имя вашего Excel-файла
-    excel_file = "Users_import.xlsx" 
-    import_data_from_excel(excel_file)
+    import_users()

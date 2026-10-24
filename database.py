@@ -34,13 +34,7 @@ class Database:
         
         try:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT 
-                    id, category, name, production, 
-                    composition, price, image, 0 as total_quantity
-                FROM products
-                ORDER BY id
-            """)
+            cursor.execute("SELECT id, category, subcategory, image, name, production, description, composition, price, stock FROM products")
             products = cursor.fetchall()
             cursor.close()
             return products
