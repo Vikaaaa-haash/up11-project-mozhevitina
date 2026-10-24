@@ -2,10 +2,12 @@ import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
+from database import Database
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.db = Database()
         self.setWindowTitle("Ювелирный — Каталог")
         self.resize(800, 600)
         self.setWindowIcon(QIcon("resources/icon.ico"))
@@ -48,6 +50,13 @@ class MainWindow(QMainWindow):
 
 
         layout.addStretch() 
+
+    def closeEvent(self, event):
+        # Закрываем все соединения в пуле
+        if self.db:
+            self.db.close_all()
+        # Подтверждаем закрытие окна
+        event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
