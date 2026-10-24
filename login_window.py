@@ -86,6 +86,6 @@ class LoginWindow(QWidget):
     def login_as_guest(self):
         # Гость не вводит логин, роль = None, ФИО = None
         from main import MainWindow
-        self.main_window = MainWindow(user_role=None, user_fio=None)
+        self.main_window = MainWindow(role_id=None, full_name=None)
         self.main_window.show()
         self.close()

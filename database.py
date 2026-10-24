@@ -34,7 +34,7 @@ class Database:
         
         try:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, category, subcategory, image, name, production, description, composition, price, stock FROM products")
+            cursor.execute("SELECT id, category, subcategory, image, name, production, description, composition, price, stock, discount_percent FROM products")
             products = cursor.fetchall()
             cursor.close()
             return products
