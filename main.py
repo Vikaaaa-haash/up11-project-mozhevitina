@@ -170,6 +170,12 @@ def create_card(product):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
+    
+    from database import Database
+    db = Database()
+    
+    from login_window import LoginWindow
+    login_window = LoginWindow(db)
+    login_window.show()
+    
     sys.exit(app.exec())
