@@ -23,10 +23,6 @@ logging.basicConfig(
 
 
 def create_card(product):
-    # ИНДЕКСЫ (согласно нашему запросу в database.py):
-    # 0:id, 1:category, 2:subcategory, 3:image, 4:name, 5:production, 
-    # 6:description, 7:composition, 8:price, 9:stock, 10:discount_percent
-    
     p_id = product[0]
     category = product[1]
     subcategory = product[2]
@@ -66,16 +62,23 @@ def create_card(product):
             logging.warning(f"Файл не найден: {image_name}. Использована заглушка.")
         pixmap = QPixmap("resources/picture.png")
 
-    # Подсветка фона: если остаток меньше 3, красим в красный
+        # ПАРА 40 
     try:
-        is_low_stock = int(stock) < 3
+        stock_val = int(stock)
     except (ValueError, TypeError):
-        is_low_stock = True
-        
-    bg_color = "#FF8080" if is_low_stock else "#FFFFFF"
+        stock_val = 0
+
+    # 1. Если товара нет на складе (stock == 0) -> голубой
+    if stock_val == 0:
+        bg_color = "#ADD8E6" 
+    # 2. Иначе, если остаток меньше 3 -> красный
+    elif stock_val < 3:
+        bg_color = "#FF8080"
+    # 3. Иначе -> белый
+    else:
+        bg_color = "#FFFFFF"
 
     # Создание карточки
-        # Создание карточки
     card = QWidget()
     # ВОЗВРАЩАЕМ СТИЛИ (без objectName, просто для HoverWidget)
     card = QWidget()
@@ -119,16 +122,17 @@ def create_card(product):
     text_layout.addWidget(comp_label)
     
     stock_label = QLabel(f"В наличии: {stock} шт.")
-    text_color = "#8B0000" if is_low_stock else "#555555"
+    text_color = "#8B0000" if stock_val < 3 else "#555555"
     stock_label.setStyleSheet(f"color: {text_color}; font-weight: bold; border: none;")
     text_layout.addWidget(stock_label)
     
     main_layout.addLayout(text_layout)
     
-    # БЛОК С ЦЕНАМИ
+    # ==========================================
+    # БЛОК С ЦЕНАМИ (ПАРА 40)
+    # ==========================================
     price_layout = QVBoxLayout()
     price_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    price_layout.setContentsMargins(0, 0, 0, 0)
 
     # 1. СТАРАЯ ЦЕНА (Перечеркнутая и красная)
     old_price_label = QLabel(f"<s>{int(old_price)} ₽</s>")
@@ -137,28 +141,36 @@ def create_card(product):
     price_layout.addWidget(old_price_label)
 
     # 2. Скрываем старую цену, если скидки нет
-    if discount_percent > 0:
+    if discount_percent > 0 and stock_val > 0:
         old_price_label.show()
     else:
         old_price_label.hide()
 
-    # 3. ИТОГОВАЯ ЦЕНА (Черная, жирная, с процентом скидки)
+    # 3. ИТОГОВАЯ ЦЕНА
     if discount_percent > 0:
         new_price_label = QLabel(f"<nobr>{int(new_price)} ₽ <span style='color: #2E8B57; font-size: 14px;'>(-{discount_percent}%)</span></nobr>")
     else:
         new_price_label = QLabel(f"{int(new_price)} ₽")
         
-    new_price_label.setStyleSheet("color: black; font-weight: bold; font-size: 18px; border: none;")
+    # ЛОГИКА ЦВЕТА ТЕКСТА ЦЕНЫ (Объединение условий)
+    if stock_val == 0:
+        # Если нет на складе — серая цена (игнорируем скидку)
+        new_price_label.setStyleSheet("color: #888888; font-weight: bold; font-size: 18px; border: none;")
+    elif discount_percent > 15:
+        # Если есть на складе и скидка > 15% — зеленая цена
+        new_price_label.setStyleSheet("color: #2E8B57; font-weight: bold; font-size: 18px; border: none;")
+    else:
+        # Иначе — черная цена
+        new_price_label.setStyleSheet("color: black; font-weight: bold; font-size: 18px; border: none;")
+        
     new_price_label.setAlignment(Qt.AlignRight)
     price_layout.addWidget(new_price_label)
 
-    # Просто добавляем layout с ценами в конец
     main_layout.addLayout(price_layout)
     card.setLayout(main_layout)
 
     card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        # --- АНИМАЦИЯ ПРИ НАВЕДЕНИИ (РАБОТАЕТ БЕЗ ГЛЮКОВ) ---
     effect = QGraphicsOpacityEffect(card)
     card.setGraphicsEffect(effect)
     
@@ -181,6 +193,11 @@ def create_card(product):
     card.leaveEvent = leave_event
     # ----------------------------------------------------
 
+    # --- ДОМАШНЕЕ ЗАДАНИЕ: БЛОКИРОВКА ---
+    # Если товара нет на складе, делаем карточку полупрозрачной (визуальная блокировка)
+    if stock_val == 0:
+        card.setEnabled(False) # Блокируем все клики внутри карточки
+        card.setStyleSheet(card.styleSheet() + " opacity: 0.7;") # Делаем чуть бледнее
 
     return card
 
@@ -220,7 +237,6 @@ class MainWindow(QMainWindow):
         
         top_layout.addStretch()
 
-        # ФИО и Роль (ДЗ из пары 37)
         if self.full_name:
             self.icon_label = QLabel()
             icon = self.style().standardIcon(self.style().StandardPixmap.SP_MessageBoxInformation)
@@ -253,7 +269,7 @@ class MainWindow(QMainWindow):
         scroll.setWidgetResizable(True)
         catalog_container = QWidget()
         catalog_layout = QVBoxLayout()
-        catalog_layout.setSpacing(10) # Отступ между карточками
+        catalog_layout.setSpacing(10) 
         catalog_layout.setAlignment(Qt.AlignTop)
         catalog_container.setLayout(catalog_layout)
         
