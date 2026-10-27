@@ -205,6 +205,14 @@ def create_card(product):
 class MainWindow(QMainWindow):
     def __init__(self, role_id=None, full_name=None):
         super().__init__()
+                # --- ЗАДАНИЕ 2: ШРИФТ CALIBRI ---
+                # --- ЗАДАНИЕ 3: ОСНОВНОЙ ФОН И ШРИФТ ---
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #FFFFFF;
+                font-family: Calibri;
+            }
+        """)
         self.role_id = role_id
         self.full_name = full_name
         self.db = Database()
@@ -223,7 +231,11 @@ class MainWindow(QMainWindow):
         central.setLayout(main_layout)
         
         # --- HEADER ---
-        top_layout = QHBoxLayout()
+        # --- ЗАДАНИЕ 3: ДОПОЛНИТЕЛЬНЫЙ ФОН ДЛЯ HEADER ---
+        header_widget = QWidget()
+        header_widget.setStyleSheet("background-color: #D2F6E7;")
+        top_layout = QHBoxLayout(header_widget)
+        top_layout.setContentsMargins(10, 5, 10, 5) 
         
         logo = QLabel()
         pixmap = QPixmap("resources/logo.png")
@@ -251,6 +263,21 @@ class MainWindow(QMainWindow):
         self.order_button = QPushButton("Оформить заказ")
         self.manager_button = QPushButton("Заказы (менеджер)")
         self.admin_button = QPushButton("Админ-панель")
+                # --- ЗАДАНИЕ 4: АКЦЕНТИРОВАНИЕ КНОПОК ---
+        for btn in [self.order_button, self.manager_button, self.admin_button]:
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #70B2AF;
+                    color: white;
+                    font-family: Calibri;
+                    border-radius: 4px;
+                    padding: 5px 10px;
+                }
+                QPushButton:hover {
+                    background-color: #5a9c99;
+                }
+            """)
+
         
         top_layout.addWidget(self.order_button)
         top_layout.addWidget(self.manager_button)
@@ -262,7 +289,7 @@ class MainWindow(QMainWindow):
         self.logout_button.clicked.connect(self.logout)
         top_layout.addWidget(self.logout_button)
         
-        main_layout.addLayout(top_layout)
+        main_layout.addWidget(header_widget)
 
         # --- КАТАЛОГ (С СОРТИРОВКОЙ ПО СКИДКЕ) ---
         scroll = QScrollArea()

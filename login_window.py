@@ -10,6 +10,8 @@ class LoginWindow(QWidget):
         
         self.setWindowTitle("Авторизация — Ювелирный")
         self.resize(350, 200)
+        from PySide6.QtGui import QIcon
+        self.setWindowIcon(QIcon("resources/icon.ico"))
         
         layout = QVBoxLayout()
         
@@ -23,11 +25,32 @@ class LoginWindow(QWidget):
         btn_layout = QHBoxLayout()
         
         self.login_button = QPushButton("Войти")
+        self.login_button.setStyleSheet("""
+            QPushButton {
+                background-color: #70B2AF;
+                color: white;
+                font-family: Calibri;
+                padding: 5px;
+                border-radius: 4px;
+            }
+        """)
         self.login_button.clicked.connect(self.check_login)
         btn_layout.addWidget(self.login_button)
         
         # Кнопка ГОСТЬ 
         self.cancel_button = QPushButton("Войти как гость")
+        self.cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #70B2AF;
+                color: white;
+                font-family: Calibri;
+                padding: 5px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #5a9c99;
+            }
+        """)
         self.cancel_button.clicked.connect(self.login_as_guest)
         btn_layout.addWidget(self.cancel_button)
         
