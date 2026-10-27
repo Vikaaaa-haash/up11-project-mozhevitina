@@ -15,9 +15,14 @@ class Database:
             self.connection_pool = None
 
     def get_connection(self):
-        if self.connection_pool:
+        try:
+            # Пытаемся взять соединение из пула
             return self.connection_pool.getconn()
-        return None
+        except psycopg2.pool.PoolError:
+            # Если пул закрыт — создаем его заново
+            print("Пул соединений был закрыт. Пересоздаем...")
+            self.create_pool() # Вызываем метод создания пула
+            return self.connection_pool.getconn()
 
     def release_connection(self, conn):
         self.connection_pool.putconn(conn)
