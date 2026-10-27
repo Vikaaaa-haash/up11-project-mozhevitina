@@ -71,7 +71,6 @@ class LoginWindow(QWidget):
 
         try:
             cursor = conn.cursor()
-            # Запрашиваем колонку role из БД
             cursor.execute("""
                 SELECT id, role, last_name, first_name, middle_name 
                 FROM users WHERE login = %s
@@ -87,7 +86,6 @@ class LoginWindow(QWidget):
             QMessageBox.warning(self, "Ошибка", "Неверный логин")
         else:
             self.user_id = result[0]
-            # Сохраняем роль из базы в переменную role_id
             self.role_id = result[1] 
             
             # Формируем ФИО
@@ -100,14 +98,12 @@ class LoginWindow(QWidget):
             QMessageBox.information(self, "Успех", f"Добро пожаловать, {self.full_name}!")
             
             from main import MainWindow
-            # Теперь передаем role_id (в котором лежит "Клиент", "Менеджер" или "Администратор")
             self.main_window = MainWindow(role_id=self.role_id, full_name=self.full_name)
             self.main_window.show()
             self.close()
 
 
     def login_as_guest(self):
-        # Гость не вводит логин, роль = None, ФИО = None
         from main import MainWindow
         self.main_window = MainWindow(role_id=None, full_name=None)
         self.main_window.show()

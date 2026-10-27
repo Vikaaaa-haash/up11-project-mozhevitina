@@ -13,6 +13,8 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 from database import Database
 from discount import calculate_price
+# Константы для расчетов
+DISCOUNT_RATE = 0.75 # Ставка скидки (25%)
 
 # Настройка логирования
 logging.basicConfig(
@@ -47,7 +49,7 @@ def create_card(product):
 
     # Считаем новую цену на основе скидки из БД
     old_price = float(price)
-    new_price = old_price - (old_price * discount_percent / 100)
+    new_price = old_price * DISCOUNT_RATE
 
     # Картинка
     if image_name and str(image_name).strip() != "":
@@ -80,7 +82,6 @@ def create_card(product):
 
     # Создание карточки
     card = QWidget()
-    # ВОЗВРАЩАЕМ СТИЛИ (без objectName, просто для HoverWidget)
     card = QWidget()
     card.setStyleSheet(f"""
         QWidget {{
@@ -89,9 +90,8 @@ def create_card(product):
             border-radius: 5px;
         }}
     """)
-    card.setMinimumHeight(120) # Чтобы карточки не сплющивались
+    card.setMinimumHeight(120) 
     main_layout = QHBoxLayout()
-    # Даем нормальные отступы со всех сторон
     main_layout.setContentsMargins(15, 15, 15, 15)
     
     # Картинка
@@ -128,9 +128,7 @@ def create_card(product):
     
     main_layout.addLayout(text_layout)
     
-    # ==========================================
     # БЛОК С ЦЕНАМИ (ПАРА 40)
-    # ==========================================
     price_layout = QVBoxLayout()
     price_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
@@ -152,7 +150,6 @@ def create_card(product):
     else:
         new_price_label = QLabel(f"{int(new_price)} ₽")
         
-    # ЛОГИКА ЦВЕТА ТЕКСТА ЦЕНЫ (Объединение условий)
     if stock_val == 0:
         # Если нет на складе — серая цена (игнорируем скидку)
         new_price_label.setStyleSheet("color: #888888; font-weight: bold; font-size: 18px; border: none;")
@@ -191,13 +188,12 @@ def create_card(product):
 
     card.enterEvent = enter_event
     card.leaveEvent = leave_event
-    # ----------------------------------------------------
 
     # --- ДОМАШНЕЕ ЗАДАНИЕ: БЛОКИРОВКА ---
     # Если товара нет на складе, делаем карточку полупрозрачной (визуальная блокировка)
     if stock_val == 0:
-        card.setEnabled(False) # Блокируем все клики внутри карточки
-        card.setStyleSheet(card.styleSheet() + " opacity: 0.7;") # Делаем чуть бледнее
+        card.setEnabled(False)
+        card.setStyleSheet(card.styleSheet() + " opacity: 0.7;") 
 
     return card
 
@@ -205,8 +201,6 @@ def create_card(product):
 class MainWindow(QMainWindow):
     def __init__(self, role_id=None, full_name=None):
         super().__init__()
-                # --- ЗАДАНИЕ 2: ШРИФТ CALIBRI ---
-                # --- ЗАДАНИЕ 3: ОСНОВНОЙ ФОН И ШРИФТ ---
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #FFFFFF;
@@ -231,7 +225,6 @@ class MainWindow(QMainWindow):
         central.setLayout(main_layout)
         
         # --- HEADER ---
-        # --- ЗАДАНИЕ 3: ДОПОЛНИТЕЛЬНЫЙ ФОН ДЛЯ HEADER ---
         header_widget = QWidget()
         header_widget.setStyleSheet("background-color: #D2F6E7;")
         top_layout = QHBoxLayout(header_widget)
@@ -263,7 +256,7 @@ class MainWindow(QMainWindow):
         self.order_button = QPushButton("Оформить заказ")
         self.manager_button = QPushButton("Заказы (менеджер)")
         self.admin_button = QPushButton("Админ-панель")
-                # --- ЗАДАНИЕ 4: АКЦЕНТИРОВАНИЕ КНОПОК ---
+
         for btn in [self.order_button, self.manager_button, self.admin_button]:
             btn.setStyleSheet("""
                 QPushButton {
@@ -291,7 +284,7 @@ class MainWindow(QMainWindow):
         
         main_layout.addWidget(header_widget)
 
-                # --- ПАНЕЛЬ ПОИСКА, ФИЛЬТРА И СОРТИРОВКИ (ПАРА 42) ---
+
         filter_layout = QHBoxLayout()
         
         # 1. Поиск
@@ -371,6 +364,10 @@ class MainWindow(QMainWindow):
             self.admin_button.show()
 
     def load_products(self):
+        """
+        Загружает товары из базы данных и отрисовывает карточки в каталоге.
+        Учитывает текущие значения фильтров, поиска и сортировки.
+        """
         # 1. Получаем значения из фильтров
         search_text = self.search_input.text()
         current_category = self.filter_combo.currentText()
@@ -387,12 +384,12 @@ class MainWindow(QMainWindow):
         # 3. Получаем все товары из БД
         products = self.db.get_products(search=search_text, category=current_category, production=current_prod, sort_order=current_sort)
         
-        # 4. УДАЛЯЕМ ДУБЛИКАТЫ ПО НАЗВАНИЮ
+
         unique_products = []
-        seen_names = set() # Множество для запоминания имен, которые мы уже видели
+        seen_names = set() 
         
         for product in products:
-            name = product[4] # Индекс 4 - это название товара (name)
+            name = product[4] 
             if name not in seen_names:
                 unique_products.append(product)
                 seen_names.add(name)

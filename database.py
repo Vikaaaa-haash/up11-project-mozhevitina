@@ -27,11 +27,14 @@ class Database:
             self.connection_pool.closeall()
 
     def get_products(self, search="", category="Все категории", production="Все производители", sort_order="По возрастанию"):
+        """
+        Получает список товаров из БД с учетом поиска, фильтров и сортировки.
+        Возвращает список кортежей с данными товаров.
+        """
         conn = self.get_connection()
         if not conn: return []
         cursor = conn.cursor()
-        
-        # Базовый запрос
+
         query = """
             SELECT id, category, subcategory, image, name, production, description, composition, price, stock, discount_percent 
             FROM products 
@@ -82,7 +85,7 @@ class Database:
             categories = []
         finally:
             cursor.close()
-            self.release_connection(conn) # Возвращаем соединение в пул
+            self.release_connection(conn) 
             
         return categories
     
@@ -113,12 +116,12 @@ class Database:
         try:
             cursor = conn.cursor()
             cursor.execute(sql, params)
-            conn.commit()  # Важно для сохранения изменений!
+            conn.commit()  
             cursor.close()
             return True
         except psycopg2.Error as e:
             print(f"Ошибка при изменении данных: {e}")
-            conn.rollback()  # Откатываем изменения при ошибке
+            conn.rollback()  
             return False
         finally:
             self.release_connection(conn)
