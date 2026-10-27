@@ -1,3 +1,4 @@
+# Изменения для ветки feature/new-design
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'logic')) 
