@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'logic'))
 import logging
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, 
-    QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QPushButton, QMessageBox
+    QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QPushButton, QMessageBox, QComboBox, QLineEdit
 )
 from PySide6.QtWidgets import QSizePolicy
 from PySide6.QtCore import QPropertyAnimation
@@ -291,15 +291,49 @@ class MainWindow(QMainWindow):
         
         main_layout.addWidget(header_widget)
 
-        # --- КАТАЛОГ (С СОРТИРОВКОЙ ПО СКИДКЕ) ---
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        catalog_container = QWidget()
-        catalog_layout = QVBoxLayout()
-        catalog_layout.setSpacing(10) 
-        catalog_layout.setAlignment(Qt.AlignTop)
-        catalog_container.setLayout(catalog_layout)
+                # --- ПАНЕЛЬ ПОИСКА, ФИЛЬТРА И СОРТИРОВКИ (ПАРА 42) ---
+        filter_layout = QHBoxLayout()
         
+        # 1. Поиск
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Поиск по названию...")
+        self.search_input.textChanged.connect(self.load_products)
+        filter_layout.addWidget(self.search_input, 2) # 2 - чтобы поиск занимал больше места
+        
+        # 2. Фильтр по категориям
+        self.filter_combo = QComboBox()
+        self.filter_combo.addItem("Все категории")
+        categories = self.db.get_categories() 
+        self.filter_combo.addItems(categories)
+        self.filter_combo.currentIndexChanged.connect(self.load_products)
+        filter_layout.addWidget(self.filter_combo, 1)
+        
+        # 3. Сортировка
+        self.sort_combo = QComboBox()
+        self.sort_combo.addItems(["По возрастанию", "По убыванию", "По названию (А-Я)"])
+        self.sort_combo.currentIndexChanged.connect(self.load_products)
+        filter_layout.addWidget(self.sort_combo, 1)
+
+        # Фильтр по производителю (ДЗ)
+        self.prod_combo = QComboBox()
+        self.prod_combo.addItem("Все производители")
+        productions = self.db.get_productions()
+        self.prod_combo.addItems(productions)
+        self.prod_combo.currentIndexChanged.connect(self.load_products)
+        filter_layout.addWidget(self.prod_combo, 1) 
+        
+        # Добавляем всю панель в главный слой
+        main_layout.addLayout(filter_layout)
+
+        # --- КАТАЛОГ (С СОРТИРОВКОЙ ПО СКИДКЕ) ---
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        catalog_container = QWidget()
+        self.catalog_layout = QVBoxLayout() 
+        self.catalog_layout.setSpacing(10) 
+        self.catalog_layout.setAlignment(Qt.AlignTop)
+        catalog_container.setLayout(self.catalog_layout) 
+
         products = self.db.get_products()
         
         # Сортируем по размеру скидки (по убыванию), чтобы самые выгодные были сверху
@@ -309,15 +343,8 @@ class MainWindow(QMainWindow):
             except:
                 return 0
                 
-        products.sort(key=get_discount, reverse=True)
-        
-        for product in products:
-            card = create_card(product)
-            catalog_layout.addWidget(card)
-            
-        catalog_layout.addStretch()
-        scroll.setWidget(catalog_container)
-        main_layout.addWidget(scroll)
+        self.scroll.setWidget(catalog_container)
+        main_layout.addWidget(self.scroll)
         
         self.setStyleSheet("""
             QMainWindow { background-color: #FFFFFF; }
@@ -325,6 +352,8 @@ class MainWindow(QMainWindow):
             QWidget { background-color: #FFFFFF; }
             QLabel { border: none; }
         """)
+
+        self.load_products()
 
     def setup_role_interface(self):
         self.order_button.hide()
@@ -340,6 +369,40 @@ class MainWindow(QMainWindow):
             self.order_button.show()
             self.manager_button.show()
             self.admin_button.show()
+
+    def load_products(self):
+        # 1. Получаем значения из фильтров
+        search_text = self.search_input.text()
+        current_category = self.filter_combo.currentText()
+        current_prod = self.prod_combo.currentText()
+        current_sort = self.sort_combo.currentText()
+        
+        # 2. Очищаем каталог
+        while self.catalog_layout.count():
+            item = self.catalog_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+                
+        # 3. Получаем все товары из БД
+        products = self.db.get_products(search=search_text, category=current_category, production=current_prod, sort_order=current_sort)
+        
+        # 4. УДАЛЯЕМ ДУБЛИКАТЫ ПО НАЗВАНИЮ
+        unique_products = []
+        seen_names = set() # Множество для запоминания имен, которые мы уже видели
+        
+        for product in products:
+            name = product[4] # Индекс 4 - это название товара (name)
+            if name not in seen_names:
+                unique_products.append(product)
+                seen_names.add(name)
+                
+        # 5. Рисуем только уникальные карточки
+        for product in unique_products:
+            card = create_card(product)
+            self.catalog_layout.addWidget(card)
+            
+        self.catalog_layout.addStretch()
 
     def logout(self):
         reply = QMessageBox.question(
