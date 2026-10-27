@@ -21,6 +21,15 @@ class Database:
         except psycopg2.pool.PoolError:
             # Если пул закрыт — создаем его заново
             print("Пул соединений был закрыт. Пересоздаем...")
+
+            self.connection_pool = psycopg2.pool.SimpleConnectionPool(
+                1, 10,
+                dbname="up11_project", 
+                user="postgres",       
+                password="123", 
+                host="localhost",
+                port="5432"
+            )
             self.create_pool() # Вызываем метод создания пула
             return self.connection_pool.getconn()
 

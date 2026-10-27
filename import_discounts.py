@@ -1,5 +1,5 @@
 import csv
-from database import Database
+from app.database import Database
 
 def import_discounts():
     # Читаем файл с заказами, чтобы взять оттуда проценты

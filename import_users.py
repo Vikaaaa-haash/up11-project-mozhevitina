@@ -1,6 +1,6 @@
 import openpyxl
 import os
-from database import Database
+from app.database import Database
 
 def import_users():
     possible_paths = [

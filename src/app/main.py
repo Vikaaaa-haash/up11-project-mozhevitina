@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QGraphicsOpacityEffect
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 from database import Database
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'logic'))
 from discount import calculate_price
 # Константы для расчетов
 DISCOUNT_RATE = 0.75 # Ставка скидки (25%)
@@ -409,7 +410,7 @@ class MainWindow(QMainWindow):
         )
         
         if reply == QMessageBox.Yes:
-            from login_window import LoginWindow
+            from app.login_window import LoginWindow
             self.login_window = LoginWindow(self.db)
             self.login_window.show()
             self.close()

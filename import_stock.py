@@ -1,5 +1,5 @@
 import csv
-from database import Database
+from app.database import Database
 
 def import_stock():
     file_path = "Stock_Items_import.csv"
